@@ -474,8 +474,11 @@ function parseTimeFromText(text) {
 function cleanTaskText(text) {
   // Remove time expressions from the task name for cleanliness
   return text
-    .replace(/\bat\s+\d{1,2}(:\d{2})?\s*(am|pm)?/gi, '')
-    .replace(/\s*\d{1,2}(:\d{2})?\s*(am|pm)\b/gi, '')
+    .replace(/\bat\s+\d{1,2}(:\d{2})?\s*(a\.?m\.?|p\.?m\.?)?/gi, '')
+    .replace(/\s*\d{1,2}(:\d{2})?\s*(a\.?m\.?|p\.?m\.?)\b/gi, '')
+    .replace(/\s*(a\.m\.|p\.m\.)\s*/gi, ' ')
+    .replace(/remind me to/gi, '')
+    .replace(/set a reminder for me/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
