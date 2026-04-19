@@ -446,23 +446,25 @@ function processVoiceResult(text) {
 
 function parseTimeFromText(text) {
   const t = text.toLowerCase();
-  // Match patterns like "at 2pm", "at 3:30", "at 2:30pm", "2pm", "3:30 pm"
+  // Match patterns like "at 2pm", "at 3:30", "at 2:30pm", "2pm", "3:30 pm", "3:07 p.m."
   const patterns = [
-    /at (\d{1,2}):(\d{2})\s*(am|pm)/i,
-    /at (\d{1,2})\s*(am|pm)/i,
-    /(\d{1,2}):(\d{2})\s*(am|pm)/i,
-    /(\d{1,2})\s*(am|pm)/i,
-    /at (\d{1,2}):(\d{2})(?!\s*[ap]m)/i,
+    /at (\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)/i,
+    /at (\d{1,2})\s*(a\.?m\.?|p\.?m\.?)/i,
+    /(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)/i,
+    /(\d{1,2})\s*(a\.?m\.?|p\.?m\.?)/i,
+    /at (\d{1,2}):(\d{2})(?!\s*[ap])/i,
   ];
   for (const pat of patterns) {
     const m = t.match(pat);
     if (m) {
       let hour = parseInt(m[1]);
       const min = m[2] && m[2].length === 2 && parseInt(m[2]) < 60 ? parseInt(m[2]) : 0;
-      const meridiem = (m[3] || m[2] || '').toLowerCase();
+      // Normalize meridiem — strip dots so "p.m." becomes "pm"
+      const meridiem = (m[3] || m[2] || '').toLowerCase().replace(/\./g, '');
       if (meridiem === 'pm' && hour < 12) hour += 12;
       if (meridiem === 'am' && hour === 12) hour = 0;
-      if (!meridiem && hour < 8) hour += 12; // assume pm for ambiguous times like "at 3"
+      // If no meridiem and hour < 8, assume PM (nobody sets a 2am work reminder)
+      if (!meridiem.includes('m') && hour < 8) hour += 12;
       return hour.toString().padStart(2,'0') + ':' + min.toString().padStart(2,'0');
     }
   }
