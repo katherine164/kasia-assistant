@@ -700,7 +700,6 @@ const GCAL_CLIENT_ID = '210618646784-cscemmgs6rarckvs8n7ltnhcukoqgpv5.apps.googl
 let gcalToken = null;
 
 function connectGCal() {
-  if (GCAL_CLIENT_ID === '210618646784-cscemmgs6rarckvs8n7ltnhcukoqgpv5.apps.googleusercontent.com') { showGCalInstructions(); return; }
   const s = document.createElement('script');
   s.src = 'https://accounts.google.com/gsi/client';
   s.onload = initGCal;
