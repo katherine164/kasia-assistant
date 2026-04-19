@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasia's Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Karla:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D0D0F;
+    --surface: #141417;
+    --surface2: #1C1C21;
+    --border: #2A2A32;
+    --accent: #E8C547;
+    --accent2: #4ECDC4;
+    --red: #FF4757;
+    --text: #F0EEE8;
+    --muted: #6B6B7A;
+    --muted2: #9090A0;
+    --clickup: #7C4DFF;
+    --gcal: #4285F4;
+    --manual: #E8C547;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Karla', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; opacity: 0.4; }
+  .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 0 60px; }
+
+  /* HEADER */
+  .header { padding: 28px 20px 20px; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.5; }
+  .greeting { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 0.04em; line-height: 0.95; color: var(--text); }
+  .greeting span { color: var(--accent); }
+  .header-sub { font-size: 12px; color: var(--muted2); margin-top: 6px; letter-spacing: 0.05em; }
+  .clock-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px; }
+  .live-clock { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 0.02em; color: var(--text); line-height: 1; }
+  .date-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; text-align: right; line-height: 1.5; }
+
+  /* SOURCE PILLS */
+  .source-bar { display: flex; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .source-bar::-webkit-scrollbar { display: none; }
+  .source-pill { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; background: var(--surface2); color: var(--muted2); }
+  .source-pill.active-clickup { border-color: var(--clickup); color: var(--clickup); background: rgba(124,77,255,0.1); }
+  .source-pill.active-gcal { border-color: var(--gcal); color: var(--gcal); background: rgba(66,133,244,0.1); }
+  .source-pill.active-manual { border-color: var(--manual); color: var(--manual); background: rgba(232,197,71,0.1); }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-clickup { background: var(--clickup); }
+  .dot-gcal { background: var(--gcal); }
+  .dot-manual { background: var(--manual); }
+
+  /* CONNECT */
+  .connect-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .connect-title { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .connect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .connect-btn { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted2); font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
+  .connect-btn:hover { border-color: var(--muted); color: var(--text); }
+  .connect-btn.connected-clickup { border-color: var(--clickup); color: var(--clickup); background: rgba(124,77,255,0.08); }
+  .connect-btn.connected-gcal { border-color: var(--gcal); color: var(--gcal); background: rgba(66,133,244,0.08); }
+  .connect-icon { font-size: 16px; }
+  .connect-status { font-size: 9px; opacity: 0.7; margin-left: auto; }
+
+  /* ALERT SETTINGS */
+  .alert-settings { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .alert-settings label { font-size: 11px; color: var(--muted2); white-space: nowrap; letter-spacing: 0.03em; }
+  .alert-settings select { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Karla', sans-serif; font-size: 12px; padding: 5px 8px; flex: 1; outline: none; }
+  .refresh-btn { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted2); font-family: 'Karla', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* VOICE SECTION */
+  .voice-section { padding: 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .voice-title { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); align-self: flex-start; }
+  .mic-btn { width: 76px; height: 76px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface2); color: var(--muted2); font-size: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .mic-btn:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.05); }
+  .mic-btn.listening { border-color: var(--red); background: rgba(255,71,87,0.1); color: var(--red); animation: mic-pulse 1s ease-in-out infinite; }
+  .mic-btn.success { border-color: var(--accent2); background: rgba(78,205,196,0.1); color: var(--accent2); }
+  @keyframes mic-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,71,87,0.4); } 50% { box-shadow: 0 0 0 16px rgba(255,71,87,0); } }
+  .voice-status { font-size: 12px; color: var(--muted2); text-align: center; line-height: 1.5; min-height: 18px; transition: color 0.2s; }
+  .voice-status.active { color: var(--red); font-weight: 600; }
+  .voice-status.success { color: var(--accent2); font-weight: 600; }
+  .voice-transcript { font-size: 14px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; width: 100%; min-height: 42px; font-style: italic; display: none; line-height: 1.4; }
+  .voice-confirm-row { display: none; width: 100%; gap: 8px; }
+  .voice-confirm-row.visible { display: flex; }
+  .voice-edit-input { flex: 1; background: var(--surface2); border: 1px solid var(--accent); border-radius: 5px; padding: 9px 12px; color: var(--text); font-family: 'Karla', sans-serif; font-size: 13px; outline: none; min-width: 0; }
+  .voice-time-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 9px 8px; color: var(--text); font-family: 'Karla', sans-serif; font-size: 12px; outline: none; width: 100px; flex-shrink: 0; }
+  .voice-add-btn { padding: 9px 14px; border-radius: 5px; border: none; background: var(--accent); color: #0D0D0F; font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .voice-add-btn:hover { opacity: 0.88; }
+  .voice-hint { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.7; }
+  .voice-hint em { color: var(--muted2); font-style: italic; }
+
+  /* MANUAL ADD */
+  .manual-section { padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  .manual-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 8px; user-select: none; }
+  .manual-title:hover { color: var(--muted2); }
+  .manual-body { display: none; padding-top: 12px; }
+  .manual-body.open { display: block; }
+  .manual-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .manual-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 10px 12px; color: var(--text); font-family: 'Karla', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; }
+  .manual-input:focus { border-color: var(--accent); }
+  .manual-input::placeholder { color: var(--muted); }
+  .manual-time { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 10px 10px; color: var(--text); font-family: 'Karla', sans-serif; font-size: 12px; outline: none; width: 110px; }
+  .add-btn { padding: 10px 16px; border-radius: 5px; border: none; background: var(--accent); color: #0D0D0F; font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; transition: opacity 0.15s; width: 100%; }
+  .add-btn:hover { opacity: 0.88; }
+
+  /* TASK FEED */
+  .feed-section { padding: 16px 20px 0; }
+  .feed-title { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .feed-count { background: var(--surface2); padding: 2px 7px; border-radius: 10px; font-size: 10px; color: var(--muted2); }
+  .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+  .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 8px 0 0 8px; }
+  .task-card.src-clickup::before { background: var(--clickup); }
+  .task-card.src-gcal::before { background: var(--gcal); }
+  .task-card.src-manual::before { background: var(--manual); }
+  .task-card.src-manual { border-color: rgba(232,197,71,0.15); }
+  .task-card.alerting { border-color: var(--red) !important; animation: flash-card 0.8s ease-in-out infinite alternate; }
+  @keyframes flash-card { from { background: var(--surface); box-shadow: none; } to { background: rgba(255,71,87,0.08); box-shadow: 0 0 20px rgba(255,71,87,0.25); } }
+  .task-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding-left: 10px; }
+  .task-name { font-size: 15px; font-weight: 700; line-height: 1.25; flex: 1; color: var(--text); }
+  .task-time-badge { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.05em; color: var(--accent); white-space: nowrap; line-height: 1; }
+  .task-meta { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding-left: 10px; flex-wrap: wrap; }
+  .tag { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; font-weight: 600; }
+  .tag-clickup { background: rgba(124,77,255,0.15); color: #A88CFF; }
+  .tag-gcal { background: rgba(66,133,244,0.15); color: #7EAAFF; }
+  .tag-manual { background: rgba(232,197,71,0.15); color: var(--accent); }
+  .tag-high { background: rgba(255,71,87,0.12); color: #FF8A94; }
+  .tag-tomorrow { background: rgba(78,205,196,0.12); color: var(--accent2); }
+  .snooze-badge { font-size: 9px; background: rgba(78,205,196,0.12); color: var(--accent2); padding: 2px 7px; border-radius: 3px; letter-spacing: 0.08em; }
+  .task-actions { display: flex; gap: 6px; margin-top: 10px; padding-left: 10px; }
+  .btn-sm { padding: 6px 10px; border-radius: 4px; font-family: 'Karla', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; letter-spacing: 0.03em; transition: all 0.15s; border: 1px solid var(--border); background: var(--surface2); color: var(--muted2); }
+  .btn-sm:hover { color: var(--text); border-color: var(--muted); }
+  .btn-done { background: rgba(78,205,196,0.1); border-color: rgba(78,205,196,0.3); color: var(--accent2); }
+  .btn-done:hover { background: rgba(78,205,196,0.2); }
+  .btn-dismiss-task { background: rgba(255,71,87,0.08); border-color: rgba(255,71,87,0.2); color: #FF8A94; }
+  .btn-dismiss-task:hover { background: rgba(255,71,87,0.15); }
+  .empty-feed { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+  .empty-big { font-size: 32px; margin-bottom: 10px; }
+
+  /* DONE */
+  .done-section { padding: 16px 20px 0; }
+  .done-title { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .done-item { font-size: 12px; color: var(--muted); text-decoration: line-through; padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+
+  /* ALERT OVERLAY */
+  #alert-overlay { display: none; position: fixed; inset: 0; z-index: 999; justify-content: center; align-items: center; padding: 24px; }
+  #alert-overlay.active { display: flex; }
+  .alert-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.88); animation: flash-bg 0.7s ease-in-out infinite alternate; }
+  @keyframes flash-bg { from { background: rgba(0,0,0,0.88); } to { background: rgba(255,71,87,0.15); } }
+  .alert-box { position: relative; background: var(--surface); border: 2px solid var(--red); border-radius: 12px; padding: 32px 24px 24px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 0 60px rgba(255,71,87,0.4), 0 20px 60px rgba(0,0,0,0.6); animation: box-pulse 0.8s ease-in-out infinite alternate; }
+  @keyframes box-pulse { from { box-shadow: 0 0 30px rgba(255,71,87,0.3), 0 20px 60px rgba(0,0,0,0.6); } to { box-shadow: 0 0 80px rgba(255,71,87,0.6), 0 20px 60px rgba(0,0,0,0.6); } }
+  .alert-source-tag { display: inline-block; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; margin-bottom: 14px; font-weight: 700; }
+  .alert-icon-ring { font-size: 48px; margin-bottom: 10px; display: block; animation: shake 0.5s ease-in-out infinite; }
+  @keyframes shake { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+  .alert-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); margin-bottom: 8px; }
+  .alert-name { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 0.04em; line-height: 1.1; color: var(--text); margin-bottom: 6px; }
+  .alert-time { font-size: 13px; color: var(--muted2); margin-bottom: 8px; }
+  .alert-repeat-note { font-size: 11px; color: var(--muted); margin-bottom: 20px; font-style: italic; }
+  .alert-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .alert-btn { padding: 13px; border-radius: 6px; font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.15s; border: none; }
+  .alert-snooze { background: var(--surface2); color: var(--muted2); border: 1px solid var(--border); }
+  .alert-snooze:hover { color: var(--text); }
+  .alert-got-it { background: var(--accent); color: #0D0D0F; }
+  .alert-got-it:hover { opacity: 0.88; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="greeting" id="greeting">GOOD MORNING,<br><span>KASIA.</span></div>
+    <div class="clock-row">
+      <div class="live-clock" id="live-clock">--:--</div>
+      <div class="date-label" id="date-label">Loading...</div>
+    </div>
+    <div class="header-sub">Your verbal assistant is active &mdash; I'll call it out loud.</div>
+  </div>
+
+  <!-- SOURCE PILLS -->
+  <div class="source-bar">
+    <div class="source-pill active-clickup"><span class="pill-dot dot-clickup"></span>ClickUp</div>
+    <div class="source-pill active-gcal"><span class="pill-dot dot-gcal"></span>Google Cal</div>
+    <div class="source-pill active-manual"><span class="pill-dot dot-manual"></span>Manual</div>
+  </div>
+
+  <!-- CONNECT -->
+  <div class="connect-section">
+    <div class="connect-title">Integrations</div>
+    <div class="connect-grid">
+      <button class="connect-btn" id="btn-clickup" onclick="connectClickUp()">
+        <span class="connect-icon">🟣</span>
+        <span id="clickup-label">Connect ClickUp</span>
+        <span class="connect-status" id="clickup-status"></span>
+      </button>
+      <button class="connect-btn" id="btn-gcal" onclick="connectGCal()">
+        <span class="connect-icon">📅</span>
+        <span id="gcal-label">Connect Google Cal</span>
+        <span class="connect-status" id="gcal-status"></span>
+      </button>
+    </div>
+    <div id="clickup-token-row" style="margin-top:8px; display:none;">
+      <input class="manual-input" id="clickup-token-input" placeholder="Paste your ClickUp API token..." style="font-size:11px;width:100%;margin-bottom:6px;" />
+      <button class="add-btn" onclick="saveClickUpToken()">Save Token</button>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.7;">
+        Get it: ClickUp &rarr; Settings &rarr; Apps &rarr; API Token
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERT TIMING -->
+  <div class="alert-settings">
+    <label>🔔 Alert me</label>
+    <select id="alert-minutes">
+      <option value="0">at exact time</option>
+      <option value="5" selected>5 min before</option>
+      <option value="10">10 min before</option>
+      <option value="15">15 min before</option>
+      <option value="30">30 min before</option>
+    </select>
+    <button class="refresh-btn" onclick="fetchAll()">&#8635; Refresh</button>
+  </div>
+
+  <!-- VOICE INPUT -->
+  <div class="voice-section">
+    <div class="voice-title">🎙 Voice Reminder &mdash; tap &amp; speak</div>
+    <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎙</button>
+    <div class="voice-status" id="voice-status">Tap the mic and say your reminder</div>
+    <div class="voice-transcript" id="voice-transcript"></div>
+    <div class="voice-confirm-row" id="voice-confirm-row">
+      <input class="voice-edit-input" id="voice-edit-input" placeholder="Edit if needed..." />
+      <input class="voice-time-input" type="time" id="voice-time-input" />
+      <button class="voice-add-btn" onclick="confirmVoiceTask()">Add &#10003;</button>
+    </div>
+    <div class="voice-hint" id="voice-hint">
+      Say things like &nbsp;<em>"Call Josh at 2pm"</em>&nbsp; or &nbsp;<em>"Team standup at 3:30"</em>&nbsp; or &nbsp;<em>"Follow up Nucor tomorrow"</em>
+    </div>
+  </div>
+
+  <!-- MANUAL ADD (collapsed) -->
+  <div class="manual-section">
+    <div class="manual-title" onclick="toggleManual()">
+      &#9000; Type it instead &nbsp;<span id="manual-toggle-icon" style="color:var(--muted);font-size:10px;font-weight:400;">&#9657; expand</span>
+    </div>
+    <div class="manual-body" id="manual-body">
+      <div class="manual-row">
+        <input class="manual-input" id="manual-text" placeholder="e.g. Call back Josh about invoices..." />
+        <input class="manual-time" type="time" id="manual-time" />
+      </div>
+      <button class="add-btn" onclick="addManual()">+ Add to My List</button>
+    </div>
+  </div>
+
+  <!-- TASK FEED -->
+  <div class="feed-section">
+    <div class="feed-title">
+      TODAY + TOMORROW
+      <span class="feed-count" id="feed-count">0 items</span>
+    </div>
+    <div id="task-feed"></div>
+  </div>
+
+  <!-- DONE -->
+  <div class="done-section" id="done-section" style="display:none;">
+    <div class="done-title" onclick="toggleDone()">&#10003; Completed <span id="done-toggle-icon">&#9657;</span></div>
+    <div id="done-list" style="display:none;"></div>
+  </div>
+
+</div>
+
+<!-- ALERT OVERLAY -->
+<div id="alert-overlay">
+  <div class="alert-bg"></div>
+  <div class="alert-box">
+    <span class="alert-icon-ring">🔔</span>
+    <div class="alert-source-tag" id="alert-source-tag">reminder</div>
+    <div class="alert-label">KASIA &mdash; YOUR ATTENTION PLEASE</div>
+    <div class="alert-name" id="alert-name">&mdash;</div>
+    <div class="alert-time" id="alert-time-display"></div>
+    <div class="alert-repeat-note">I'll keep reminding you every minute until you dismiss this.</div>
+    <div class="alert-actions">
+      <button class="alert-btn alert-snooze" onclick="snoozeAlert()">😴 Snooze 5 min</button>
+      <button class="alert-btn alert-got-it" onclick="dismissAlert()">Got it &#10003;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let allTasks = [];
+let doneTasks = [];
+let activeAlertId = null;
+let repeatTimer = null;
+let snoozedMap = {};
+let alreadyAlerted = new Set();
+let clickupConnected = false;
+let gcalConnected = false;
+const STORAGE = 'kasia-assistant-v4';
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORAGE) || '{}');
+    allTasks = s.allTasks || [];
+    doneTasks = s.doneTasks || [];
+    alreadyAlerted = new Set(s.alerted || []);
+    if (localStorage.getItem('clickup-token')) { clickupConnected = true; updateClickUpUI(); }
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE, JSON.stringify({ allTasks, doneTasks, alerted: [...alreadyAlerted] }));
+}
+
+// ─── CLOCK ───────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('live-clock').textContent = h + ':' + m;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('date-label').innerHTML = days[now.getDay()] + '<br>' + months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  const greetWord = now.getHours() < 12 ? 'GOOD MORNING,' : now.getHours() < 17 ? 'GOOD AFTERNOON,' : 'GOOD EVENING,';
+  document.getElementById('greeting').innerHTML = greetWord + '<br><span>KASIA.</span>';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── SPEECH OUTPUT ────────────────────────────────────────────────────────────
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.rate = 0.92; msg.pitch = 1.05; msg.volume = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => /samantha|karen|victoria|zoe|allison/i.test(v.name))
+    || voices.find(v => v.lang === 'en-US') || voices[0];
+  if (preferred) msg.voice = preferred;
+  window.speechSynthesis.speak(msg);
+}
+window.speechSynthesis.onvoiceschanged = () => {};
+
+// ─── VOICE INPUT (Speech Recognition) ────────────────────────────────────────
+let recognition = null;
+let isListening = false;
+
+function toggleMic() {
+  if (isListening) { stopListening(); return; }
+  startListening();
+}
+
+function startListening() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('voice-status').textContent = 'Voice not supported in this browser. Use Chrome!';
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('mic-btn').className = 'mic-btn listening';
+    document.getElementById('mic-btn').textContent = '⏹';
+    setVoiceStatus('Listening... speak your reminder now', 'active');
+    document.getElementById('voice-transcript').style.display = 'block';
+    document.getElementById('voice-transcript').textContent = '...';
+    document.getElementById('voice-confirm-row').className = 'voice-confirm-row';
+    document.getElementById('voice-hint').style.display = 'none';
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    document.getElementById('voice-transcript').textContent = final || interim;
+    if (final) processVoiceResult(final.trim());
+  };
+
+  recognition.onerror = (e) => {
+    stopListening();
+    setVoiceStatus('Could not hear you — try again', '');
+  };
+
+  recognition.onend = () => {
+    if (isListening) stopListening();
+  };
+
+  recognition.start();
+}
+
+function stopListening() {
+  isListening = false;
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  document.getElementById('mic-btn').className = 'mic-btn';
+  document.getElementById('mic-btn').textContent = '🎙';
+}
+
+function processVoiceResult(text) {
+  stopListening();
+  setVoiceStatus('Got it! Review and add:', 'success');
+  document.getElementById('mic-btn').className = 'mic-btn success';
+  document.getElementById('mic-btn').textContent = '✓';
+  setTimeout(() => {
+    document.getElementById('mic-btn').className = 'mic-btn';
+    document.getElementById('mic-btn').textContent = '🎙';
+  }, 2000);
+
+  // Parse time from text
+  const parsedTime = parseTimeFromText(text);
+  const cleanedText = cleanTaskText(text);
+
+  document.getElementById('voice-edit-input').value = cleanedText;
+  if (parsedTime) document.getElementById('voice-time-input').value = parsedTime;
+  document.getElementById('voice-confirm-row').className = 'voice-confirm-row visible';
+  document.getElementById('voice-edit-input').focus();
+}
+
+function parseTimeFromText(text) {
+  const t = text.toLowerCase();
+  // Match patterns like "at 2pm", "at 3:30", "at 2:30pm", "2pm", "3:30 pm"
+  const patterns = [
+    /at (\d{1,2}):(\d{2})\s*(am|pm)/i,
+    /at (\d{1,2})\s*(am|pm)/i,
+    /(\d{1,2}):(\d{2})\s*(am|pm)/i,
+    /(\d{1,2})\s*(am|pm)/i,
+    /at (\d{1,2}):(\d{2})(?!\s*[ap]m)/i,
+  ];
+  for (const pat of patterns) {
+    const m = t.match(pat);
+    if (m) {
+      let hour = parseInt(m[1]);
+      const min = m[2] && m[2].length === 2 && parseInt(m[2]) < 60 ? parseInt(m[2]) : 0;
+      const meridiem = (m[3] || m[2] || '').toLowerCase();
+      if (meridiem === 'pm' && hour < 12) hour += 12;
+      if (meridiem === 'am' && hour === 12) hour = 0;
+      if (!meridiem && hour < 8) hour += 12; // assume pm for ambiguous times like "at 3"
+      return hour.toString().padStart(2,'0') + ':' + min.toString().padStart(2,'0');
+    }
+  }
+  return '';
+}
+
+function cleanTaskText(text) {
+  // Remove time expressions from the task name for cleanliness
+  return text
+    .replace(/\bat\s+\d{1,2}(:\d{2})?\s*(am|pm)?/gi, '')
+    .replace(/\s*\d{1,2}(:\d{2})?\s*(am|pm)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function confirmVoiceTask() {
+  const name = document.getElementById('voice-edit-input').value.trim();
+  const time = document.getElementById('voice-time-input').value;
+  if (!name) return;
+
+  const isTomorrow = /tomorrow/i.test(name);
+  allTasks.unshift({
+    id: 'manual-' + Date.now(),
+    name: name.replace(/\btomorrow\b/gi, '').trim(),
+    time: time || null,
+    date: isTomorrow ? tomorrowStr() : todayStr(),
+    source: 'manual',
+    priority: 'medium'
+  });
+
+  document.getElementById('voice-edit-input').value = '';
+  document.getElementById('voice-time-input').value = '';
+  document.getElementById('voice-confirm-row').className = 'voice-confirm-row';
+  document.getElementById('voice-transcript').style.display = 'none';
+  document.getElementById('voice-hint').style.display = 'block';
+  setVoiceStatus('Added! Tap mic for another reminder.', 'success');
+  setTimeout(() => setVoiceStatus('Tap the mic and say your reminder', ''), 3000);
+
+  speak('Got it, added to your list.');
+  render();
+}
+
+function setVoiceStatus(msg, cls) {
+  const el = document.getElementById('voice-status');
+  el.textContent = msg;
+  el.className = 'voice-status' + (cls ? ' ' + cls : '');
+}
+
+// ─── MANUAL TOGGLE ─────────────────────────────────────────────────────────────
+function toggleManual() {
+  const body = document.getElementById('manual-body');
+  const icon = document.getElementById('manual-toggle-icon');
+  const open = body.classList.toggle('open');
+  icon.innerHTML = open ? '&#9663; collapse' : '&#9657; expand';
+}
+
+// ─── FORMAT HELPERS ───────────────────────────────────────────────────────────
+function fmt12(timeStr) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  return (h % 12 || 12) + ':' + m.toString().padStart(2,'0') + (h >= 12 ? ' PM' : ' AM');
+}
+function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function tomorrowStr() { const d = new Date(); d.setDate(d.getDate()+1); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function isToday(ds) { return ds === todayStr(); }
+function isTomorrow(ds) { return ds === tomorrowStr(); }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  const feed = document.getElementById('task-feed');
+  const active = allTasks.filter(t => !doneTasks.includes(t.id));
+  document.getElementById('feed-count').textContent = active.length + ' item' + (active.length !== 1 ? 's' : '');
+
+  if (active.length === 0) {
+    feed.innerHTML = '<div class="empty-feed"><div class="empty-big">🌿</div>You\'re all clear.<br>Tap the mic above to add a quick reminder.</div>';
+  } else {
+    const sorted = [...active].sort((a,b) => {
+      const da = (a.date || todayStr()) + (a.time || '23:59');
+      const db = (b.date || todayStr()) + (b.time || '23:59');
+      return da.localeCompare(db);
+    });
+    feed.innerHTML = sorted.map(t => {
+      const isAlert = t.id === activeAlertId;
+      const isSnoozed = snoozedMap[t.id] && snoozedMap[t.id] > Date.now();
+      const dayLabel = isTomorrow(t.date || todayStr()) ? 'tomorrow' : 'today';
+      return '<div class="task-card src-' + t.source + (isAlert ? ' alerting' : '') + '" id="card-' + t.id + '">' +
+        '<div class="task-top"><div class="task-name">' + escHtml(t.name) + '</div>' +
+        (t.time ? '<div class="task-time-badge">' + fmt12(t.time) + '</div>' : '') + '</div>' +
+        '<div class="task-meta">' +
+        '<span class="tag tag-' + t.source + '">' + (t.source === 'clickup' ? '🟣 ClickUp' : t.source === 'gcal' ? '📅 Google Cal' : '⭐ Manual') + '</span>' +
+        (t.priority === 'high' ? '<span class="tag tag-high">🔴 High</span>' : '') +
+        (dayLabel === 'tomorrow' ? '<span class="tag tag-tomorrow">Tomorrow</span>' : '') +
+        (isSnoozed ? '<span class="snooze-badge">💤 Snoozed</span>' : '') +
+        '</div><div class="task-actions">' +
+        '<button class="btn-sm" onclick="previewSpeak(\'' + t.id + '\')">🔊 Preview</button>' +
+        '<button class="btn-sm btn-done" onclick="markDone(\'' + t.id + '\')">✓ Done</button>' +
+        '<button class="btn-sm btn-dismiss-task" onclick="removeTask(\'' + t.id + '\')">✕</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  if (doneTasks.length > 0) {
+    document.getElementById('done-section').style.display = 'block';
+    document.getElementById('done-list').innerHTML = allTasks.filter(t => doneTasks.includes(t.id)).map(t =>
+      '<div class="done-item"><span>' + escHtml(t.name) + '</span><span style="font-size:10px">' + fmt12(t.time) + '</span></div>'
+    ).join('');
+  }
+  saveState();
+}
+
+function toggleDone() {
+  const dl = document.getElementById('done-list');
+  const icon = document.getElementById('done-toggle-icon');
+  dl.style.display = dl.style.display === 'none' ? 'block' : 'none';
+  icon.textContent = dl.style.display === 'none' ? '▸' : '▾';
+}
+
+// ─── TASK ACTIONS ─────────────────────────────────────────────────────────────
+function addManual() {
+  const name = document.getElementById('manual-text').value.trim();
+  const time = document.getElementById('manual-time').value;
+  if (!name) { document.getElementById('manual-text').focus(); return; }
+  const isTmrw = /tomorrow/i.test(name);
+  allTasks.unshift({ id: 'manual-' + Date.now(), name: name.replace(/\btomorrow\b/gi,'').trim() || name, time: time || null, date: isTmrw ? tomorrowStr() : todayStr(), source: 'manual', priority: 'medium' });
+  document.getElementById('manual-text').value = '';
+  document.getElementById('manual-time').value = '';
+  render();
+}
+
+function markDone(id) {
+  if (!doneTasks.includes(id)) doneTasks.push(id);
+  alreadyAlerted.add(id);
+  if (activeAlertId === id) closeAlert();
+  render();
+}
+
+function removeTask(id) {
+  allTasks = allTasks.filter(t => t.id !== id);
+  if (activeAlertId === id) closeAlert();
+  render();
+}
+
+function previewSpeak(id) {
+  const t = allTasks.find(x => x.id === id);
+  if (t) speak('Kasia, reminder: ' + t.name);
+}
+
+// ─── ALERT SYSTEM ─────────────────────────────────────────────────────────────
+function checkAlerts() {
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const alertBefore = parseInt(document.getElementById('alert-minutes').value);
+  for (const t of allTasks) {
+    if (doneTasks.includes(t.id)) continue;
+    if (!t.time) continue;
+    if (!isToday(t.date || todayStr())) continue;
+    if (snoozedMap[t.id] && snoozedMap[t.id] > Date.now()) continue;
+    const [th, tm] = t.time.split(':').map(Number);
+    const taskMin = th * 60 + tm;
+    const diff = taskMin - nowMin;
+    if (diff <= alertBefore && diff >= -5 && !alreadyAlerted.has(t.id)) {
+      triggerAlert(t); break;
+    }
+  }
+}
+
+function triggerAlert(task) {
+  activeAlertId = task.id;
+  alreadyAlerted.add(task.id);
+  const srcColors = { clickup: '#A88CFF', gcal: '#7EAAFF', manual: '#E8C547' };
+  const srcLabels = { clickup: '🟣 FROM CLICKUP', gcal: '📅 FROM GOOGLE CALENDAR', manual: '⭐ REMINDER' };
+  const stag = document.getElementById('alert-source-tag');
+  stag.textContent = srcLabels[task.source] || 'REMINDER';
+  stag.style.background = 'rgba(' + (task.source === 'clickup' ? '124,77,255' : task.source === 'gcal' ? '66,133,244' : '232,197,71') + ',0.15)';
+  stag.style.color = srcColors[task.source] || '#E8C547';
+  document.getElementById('alert-name').textContent = task.name;
+  document.getElementById('alert-time-display').textContent = task.time ? 'Scheduled for ' + fmt12(task.time) : '';
+  document.getElementById('alert-overlay').classList.add('active');
+  speak('Kasia, your attention please. ' + task.name);
+  clearInterval(repeatTimer);
+  repeatTimer = setInterval(() => { if (activeAlertId === task.id) speak('Kasia, still waiting. ' + task.name); }, 60000);
+  render();
+}
+
+function dismissAlert() { if (activeAlertId) markDone(activeAlertId); closeAlert(); }
+
+function snoozeAlert() {
+  if (activeAlertId) { snoozedMap[activeAlertId] = Date.now() + 5 * 60 * 1000; alreadyAlerted.delete(activeAlertId); speak('Snoozed for 5 minutes, Kasia.'); }
+  closeAlert();
+}
+
+function closeAlert() {
+  activeAlertId = null; clearInterval(repeatTimer); window.speechSynthesis.cancel();
+  document.getElementById('alert-overlay').classList.remove('active'); render();
+}
+
+setInterval(checkAlerts, 30000);
+
+// ─── CLICKUP ──────────────────────────────────────────────────────────────────
+function connectClickUp() {
+  const row = document.getElementById('clickup-token-row');
+  row.style.display = row.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveClickUpToken() {
+  const token = document.getElementById('clickup-token-input').value.trim();
+  if (!token) return;
+  localStorage.setItem('clickup-token', token);
+  clickupConnected = true; updateClickUpUI();
+  document.getElementById('clickup-token-row').style.display = 'none';
+  fetchClickUp();
+}
+
+function updateClickUpUI() {
+  document.getElementById('btn-clickup').classList.add('connected-clickup');
+  document.getElementById('clickup-label').textContent = 'ClickUp ✓';
+  document.getElementById('clickup-status').textContent = 'connected';
+}
+
+async function cuFetch(url, token) {
+  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  return fetch(proxy, { headers: { Authorization: token } });
+}
+
+async function fetchClickUp() {
+  const token = localStorage.getItem('clickup-token');
+  if (!token) return;
+  try {
+    const meRes = await cuFetch('https://api.clickup.com/api/v2/user', token);
+    if (!meRes.ok) throw new Error('bad token');
+    const me = await meRes.json();
+    const userId = me.user.id;
+    const teamsRes = await cuFetch('https://api.clickup.com/api/v2/team', token);
+    const teamsData = await teamsRes.json();
+    const teamId = teamsData.teams[0]?.id;
+    if (!teamId) return;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const endOfTomorrow = new Date(); endOfTomorrow.setDate(endOfTomorrow.getDate()+1); endOfTomorrow.setHours(23,59,59,999);
+    const params = new URLSearchParams({ assignees: [userId], due_date_gt: today.getTime(), due_date_lt: endOfTomorrow.getTime(), include_closed: false, subtasks: true });
+    const tasksRes = await cuFetch('https://api.clickup.com/api/v2/team/' + teamId + '/task?' + params, token);
+    const tasksData = await tasksRes.json();
+    const existing = new Set(allTasks.filter(t => t.source === 'clickup').map(t => t.id));
+    for (const task of (tasksData.tasks || [])) {
+      const isHigh = task.priority && (task.priority.id === '1' || task.priority.priority === 'urgent' || task.priority.priority === 'high');
+      const dueDate = task.due_date ? new Date(parseInt(task.due_date)) : null;
+      const dateStr = dueDate ? dueDate.toISOString().split('T')[0] : todayStr();
+      const isDueToday = isToday(dateStr);
+      if (!isHigh && !isDueToday) continue;
+      if (!existing.has('cu-' + task.id)) {
+        allTasks.push({ id: 'cu-' + task.id, name: task.name, time: dueDate ? dueDate.getHours().toString().padStart(2,'0') + ':' + dueDate.getMinutes().toString().padStart(2,'0') : null, date: dateStr, source: 'clickup', priority: isHigh ? 'high' : 'medium' });
+      }
+    }
+    render();
+  } catch(e) { console.warn('ClickUp error:', e.message); }
+}
+
+// ─── GOOGLE CALENDAR ──────────────────────────────────────────────────────────
+const GCAL_CLIENT_ID = '210618646784-cscemmgs6rarckvs8n7ltnhcukoqgpv5.apps.googleusercontent.com';
+let gcalToken = null;
+
+function connectGCal() {
+  if (GCAL_CLIENT_ID === '210618646784-cscemmgs6rarckvs8n7ltnhcukoqgpv5.apps.googleusercontent.com') { showGCalInstructions(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = initGCal;
+  document.head.appendChild(s);
+}
+
+function initGCal() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    callback: (resp) => { if (resp.access_token) { gcalToken = resp.access_token; gcalConnected = true; updateGCalUI(); fetchGCal(); } }
+  });
+  client.requestAccessToken();
+}
+
+function showGCalInstructions() {
+  alert('To connect Google Calendar:\n\n1. Go to console.cloud.google.com\n2. New project → Enable Google Calendar API\n3. Create OAuth 2.0 credentials (Web App)\n4. Add this page URL to Authorized JavaScript Origins\n5. Copy the Client ID and paste it into the HTML where it says 210618646784-cscemmgs6rarckvs8n7ltnhcukoqgpv5.apps.googleusercontent.com\n\nFor now, use the voice mic to add reminders instantly!');
+}
+
+function updateGCalUI() {
+  document.getElementById('btn-gcal').classList.add('connected-gcal');
+  document.getElementById('gcal-label').textContent = 'Google Cal ✓';
+  document.getElementById('gcal-status').textContent = 'connected';
+}
+
+async function fetchGCal() {
+  if (!gcalToken) return;
+  try {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const endTomorrow = new Date(); endTomorrow.setDate(endTomorrow.getDate()+1); endTomorrow.setHours(23,59,59,999);
+    const params = new URLSearchParams({ timeMin: today.toISOString(), timeMax: endTomorrow.toISOString(), singleEvents: true, orderBy: 'startTime' });
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?' + params, { headers: { Authorization: 'Bearer ' + gcalToken } });
+    const data = await res.json();
+    const existing = new Set(allTasks.filter(t => t.source === 'gcal').map(t => t.id));
+    for (const ev of (data.items || [])) {
+      if (existing.has('gcal-' + ev.id)) continue;
+      const startDate = new Date(ev.start.dateTime || ev.start.date);
+      const isAllDay = !ev.start.dateTime;
+      allTasks.push({ id: 'gcal-' + ev.id, name: ev.summary || 'Calendar Event', time: isAllDay ? null : startDate.getHours().toString().padStart(2,'0') + ':' + startDate.getMinutes().toString().padStart(2,'0'), date: startDate.toISOString().split('T')[0], source: 'gcal', priority: 'medium' });
+    }
+    render();
+  } catch(e) { console.warn('GCal error:', e); }
+}
+
+// ─── FETCH ALL ────────────────────────────────────────────────────────────────
+async function fetchAll() {
+  if (clickupConnected) await fetchClickUp();
+  if (gcalConnected) await fetchGCal();
+  render();
+}
+setInterval(fetchAll, 10 * 60 * 1000);
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadState();
+if (localStorage.getItem('clickup-token')) { clickupConnected = true; updateClickUpUI(); fetchClickUp(); }
+render();
+document.getElementById('manual-text').addEventListener('keydown', e => { if (e.key === 'Enter') addManual(); });
+document.getElementById('voice-edit-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmVoiceTask(); });
+</script>
+</body>
+</html>
